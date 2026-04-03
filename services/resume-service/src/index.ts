@@ -1,9 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import resumeRouter from './routes/resumes';
-
-dotenv.config();
+import resumeRouter from './routes/resumes.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '8003', 10);
