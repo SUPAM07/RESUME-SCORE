@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
@@ -57,7 +58,27 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         env=settings.env,
         port=settings.port,
     )
+
+    # Start Redis Streams event consumer if events are enabled
+    event_consumer_task = None
+    if (settings.env != "test"):
+        try:
+            from app.events.consumer import start_event_consumer  # noqa: PLC0415
+            event_consumer_task = asyncio.create_task(start_event_consumer())
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Event consumer could not start", exc_info=exc)
+
     yield
+
+    # Stop event consumer on shutdown
+    if event_consumer_task and not event_consumer_task.done():
+        try:
+            from app.events.consumer import stop_event_consumer  # noqa: PLC0415
+            stop_event_consumer()
+            event_consumer_task.cancel()
+        except Exception:  # noqa: BLE001
+            pass
+
     logger.info("ai_service_stopped")
 
 
