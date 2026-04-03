@@ -2,19 +2,45 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "ES2022"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2022"
+    ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "preserve",
     "incremental": true,
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@resume-score/common": ["../../packages/common/src/index.ts"],
-      "@resume-score/types": ["../../packages/types/src/index.ts"],
-      "@resume-score/logger": ["../../packages/logger/src/index.ts"]
-    }
+      "@/*": [
+        "./src/*"
+      ],
+      "@resume-score/common": [
+        "../../packages/common/src/index.ts"
+      ],
+      "@resume-score/types": [
+        "../../packages/types/src/index.ts"
+      ],
+      "@resume-score/logger": [
+        "../../packages/logger/src/index.ts"
+      ]
+    },
+    "allowJs": true,
+    "noEmit": true,
+    "isolatedModules": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

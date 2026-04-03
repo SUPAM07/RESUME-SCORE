@@ -1,0 +1,14 @@
+services:
+  # Minimal Redis for rate limiting and caching
+  # (Requires only ~10MB download)
+  redis:
+    image: redis:7-alpine
+    container_name: resumelm-redis-lite
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_lite:/data
+
+volumes:
+  redis_data_lite:

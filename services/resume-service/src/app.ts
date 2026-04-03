@@ -14,7 +14,7 @@ let metricsRouteHandler: ((req: express.Request, res: express.Response) => void)
 
 try {
   const { createMetricsMiddleware, metricsHandler } = await import(
-    // @ts-expect-error — optional peer dependency
+    // @ts-ignore — optional peer dependency
     '@resume-lm/shared/observability/metrics'
   );
   metricsMiddleware = createMetricsMiddleware('resume-service');

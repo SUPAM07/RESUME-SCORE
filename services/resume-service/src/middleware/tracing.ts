@@ -13,7 +13,7 @@ if (process.env['ENABLE_TRACING'] !== 'false') {
     // Dynamic require so the package is optional at runtime
     const { initTracing } = await import(
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error — dynamic path resolution for optional peer dep
+      // @ts-ignore — dynamic path resolution for optional peer dep
       '@resume-lm/shared/observability/tracing'
     );
     initTracing({ serviceName: 'resume-service', serviceVersion: '1.0.0' });

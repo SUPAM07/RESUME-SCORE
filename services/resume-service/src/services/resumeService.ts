@@ -200,5 +200,8 @@ export async function duplicateResume(id: string, userId: string): Promise<Resum
   return createResume(userId, {
     ...rest,
     name: `${source.name} (copy)`,
+    section_order: rest.section_order ?? undefined,
+    section_configs: rest.section_configs ?? undefined,
+    document_settings: rest.document_settings ?? undefined,
   });
 }

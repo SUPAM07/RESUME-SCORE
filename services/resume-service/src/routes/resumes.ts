@@ -8,7 +8,7 @@ import {
   deleteResume,
   duplicateResume,
 } from '../services/resumeService.js';
-import { generatePdf } from '../services/pdfService.js';
+import { generateResumePdf } from '../services/pdfService.js';
 import { ValidationError } from '../utils/errors.js';
 import type { CreateResumeBody, UpdateResumeBody } from '../models/resume.js';
 
@@ -114,7 +114,7 @@ router.get('/:id/pdf', (async (req: Request, res: Response, next: NextFunction) 
   try {
     const authReq = req as AuthenticatedRequest;
     const resume = await getResumeById(req.params['id'] as string, authReq.user.sub);
-    const pdfBuffer = await generatePdf(resume);
+    const pdfBuffer = await generateResumePdf(resume);
 
     const filename = `${resume.name.replace(/[^a-z0-9]/gi, '_')}_resume.pdf`;
     res.setHeader('Content-Type', 'application/pdf');

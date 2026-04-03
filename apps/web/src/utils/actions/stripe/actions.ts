@@ -15,6 +15,7 @@ function getStripe(): Stripe {
       throw new Error('STRIPE_SECRET_KEY is not configured. Stripe features are disabled.');
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       apiVersion: '2025-08-27.basil' as any
     });
   }
