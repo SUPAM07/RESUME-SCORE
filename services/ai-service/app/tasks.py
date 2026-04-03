@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import asyncio
 from typing import Any
 
 from celery import Task
@@ -28,37 +29,66 @@ def _get_anthropic_client() -> Anthropic:
     return Anthropic(api_key=ANTHROPIC_API_KEY)
 
 
-def _call_ai(prompt: str, system_prompt: str = "") -> str:
-    if AI_PROVIDER == "anthropic" and ANTHROPIC_API_KEY:
-        client = _get_anthropic_client()
-        # Instruct model to return only JSON so json.loads succeeds downstream
-        json_system = (system_prompt or "You are an expert resume writer and career coach.") + (
-            " Respond with valid JSON only. Do not include markdown fences or any text outside the JSON object."
-        )
-        message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=4096,
-            system=json_system,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return message.content[0].text
-    else:
-        client = _get_openai_client()
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        else:
-            messages.append(
-                {"role": "system", "content": "You are an expert resume writer and career coach."}
+def _validate_json_response(response_text: str) -> dict[str, Any]:
+    """Validate and parse JSON response from AI provider."""
+    if not isinstance(response_text, str):
+        raise ValueError("Response must be a string")
+    
+    response_text = response_text.strip()
+    if not response_text:
+        raise ValueError("Response is empty")
+    
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON from AI provider: {response_text[:200]}")
+        raise ValueError(f"AI provider returned invalid JSON: {str(e)}")
+
+
+def _call_ai(prompt: str, system_prompt: str = "") -> dict[str, Any]:
+    """Call AI provider and return validated JSON response."""
+    if not prompt or not isinstance(prompt, str):
+        raise ValueError("Prompt must be a non-empty string")
+    
+    try:
+        if AI_PROVIDER == "anthropic" and ANTHROPIC_API_KEY:
+            client = _get_anthropic_client()
+            json_system = (system_prompt or "You are an expert resume writer and career coach.") + (
+                " Respond with valid JSON only. Do not include markdown fences or any text outside the JSON object."
             )
-        messages.append({"role": "user", "content": prompt})
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            max_tokens=4096,
-            response_format={"type": "json_object"},
-        )
-        return response.choices[0].message.content or "{}"
+            message = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=4096,
+                system=json_system,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            response_text = message.content[0].text if message.content else ""
+        else:
+            client = _get_openai_client()
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            else:
+                messages.append(
+                    {"role": "system", "content": "You are an expert resume writer and career coach."}
+                )
+            messages.append({"role": "user", "content": prompt})
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                max_tokens=4096,
+                response_format={"type": "json_object"},
+            )
+            response_text = response.choices[0].message.content or "{}"
+        
+        # Validate response is valid JSON
+        return _validate_json_response(response_text)
+    except ValueError:
+        # Re-raise validation errors
+        raise
+    except Exception as e:
+        logger.error(f"AI provider error: {str(e)}")
+        raise RuntimeError(f"AI provider error: {str(e)}")
 
 
 class BaseAITask(Task):
@@ -77,135 +107,24 @@ def generate_resume_task(
     existing_resume: dict[str, Any] | None,
     instructions: str | None,
 ) -> dict[str, Any]:
-    self.update_state(state="PROGRESS", meta={"progress": 10, "status": "Analyzing requirements"})
-
-    system_prompt = (
-        "You are an expert resume writer specializing in ATS-optimized resumes. "
-        "Always return valid JSON matching the requested schema."
-    )
-
-    resume_context = ""
-    if existing_resume:
-        resume_context = f"\nExisting resume data:\n{json.dumps(existing_resume, indent=2)}"
-
-    prompt = f"""Generate a professional resume for the following:
-Job Title: {job_title or 'Not specified'}
-Job Description: {job_description or 'Not specified'}
-{resume_context}
-Additional Instructions: {instructions or 'None'}
-
-Return a JSON object with these fields:
-- personal_info: {{full_name, email, phone, location, linkedin, github, website}}
-- work_experience: [{{position, company, location, start_date, end_date, description, responsibilities: []}}]
-- education: [{{degree, institution, location, graduation_date, gpa, achievements: []}}]
-- skills: [{{category, skills: []}}]
-- summary: string"""
-
-    self.update_state(state="PROGRESS", meta={"progress": 40, "status": "Generating content"})
-
-    result_text = _call_ai(prompt, system_prompt)
-
-    self.update_state(state="PROGRESS", meta={"progress": 80, "status": "Finalizing resume"})
-
+    """Generate a resume using AI."""
     try:
-        result = json.loads(result_text)
-    except json.JSONDecodeError:
-        result = {"raw_content": result_text}
+        self.update_state(state="PROGRESS", meta={"progress": 10, "status": "Analyzing requirements"})
 
-    return {"status": "completed", "resume": result}
+        system_prompt = (
+            "You are an expert resume writer specializing in ATS-optimized resumes. "
+            "Always return valid JSON matching the requested schema."
+        )
 
+        resume_context = ""
+        if existing_resume:
+            resume_context = f"\nExisting resume data:\n{json.dumps(existing_resume, indent=2)}"
 
-@celery_app.task(bind=True, base=BaseAITask, name="app.tasks.tailor_resume_task")
-def tailor_resume_task(
-    self,
-    user_id: str,
-    resume: dict[str, Any],
-    job_description: str,
-    job_title: str | None,
-    instructions: str | None,
-) -> dict[str, Any]:
-    self.update_state(state="PROGRESS", meta={"progress": 10, "status": "Analyzing job description"})
+        prompt = f"""Generate a professional resume for the following:\nJob Title: {job_title or 'Not specified'}\nJob Description: {job_description or 'Not specified'}\n{resume_context}\nAdditional Instructions: {instructions or 'None'}\n\nReturn ONLY valid JSON with the resume structure."""
 
-    system_prompt = (
-        "You are an expert resume writer specializing in tailoring resumes to specific job descriptions "
-        "for maximum ATS compatibility. Always return valid JSON."
-    )
-
-    prompt = f"""Tailor the following resume for this job opportunity:
-
-Job Title: {job_title or 'Not specified'}
-Job Description:
-{job_description}
-
-Current Resume:
-{json.dumps(resume, indent=2)}
-
-Additional Instructions: {instructions or 'None'}
-
-Return a JSON object with the tailored resume maintaining the same structure as the input resume.
-Focus on:
-1. Highlighting relevant experience and skills
-2. Using keywords from the job description
-3. Quantifying achievements where possible
-4. Ensuring ATS compatibility"""
-
-    self.update_state(state="PROGRESS", meta={"progress": 40, "status": "Tailoring content"})
-
-    result_text = _call_ai(prompt, system_prompt)
-
-    self.update_state(state="PROGRESS", meta={"progress": 80, "status": "Finalizing tailored resume"})
-
-    try:
-        result = json.loads(result_text)
-    except json.JSONDecodeError:
-        result = {"raw_content": result_text}
-
-    return {"status": "completed", "resume": result}
-
-
-@celery_app.task(bind=True, base=BaseAITask, name="app.tasks.score_resume_task")
-def score_resume_task(
-    self,
-    resume: dict[str, Any],
-    job_description: str,
-    job_title: str | None,
-) -> dict[str, Any]:
-    self.update_state(state="PROGRESS", meta={"progress": 20, "status": "Analyzing resume"})
-
-    system_prompt = (
-        "You are an ATS (Applicant Tracking System) expert. "
-        "Analyze resumes and return detailed scoring. Always return valid JSON."
-    )
-
-    prompt = f"""Score this resume against the job description:
-
-Job Title: {job_title or 'Not specified'}
-Job Description:
-{job_description}
-
-Resume:
-{json.dumps(resume, indent=2)}
-
-Return a JSON object with:
-- overall_score: integer 0-100
-- keyword_match: integer 0-100
-- format_score: integer 0-100  
-- experience_relevance: integer 0-100
-- suggestions: array of strings with specific improvement recommendations"""
-
-    self.update_state(state="PROGRESS", meta={"progress": 60, "status": "Scoring resume"})
-
-    result_text = _call_ai(prompt, system_prompt)
-
-    try:
-        result = json.loads(result_text)
-    except json.JSONDecodeError:
-        result = {
-            "overall_score": 0,
-            "keyword_match": 0,
-            "format_score": 0,
-            "experience_relevance": 0,
-            "suggestions": ["Unable to parse AI response"],
-        }
-
-    return {"status": "completed", "score": result}
+        result = _call_ai(prompt, system_prompt)
+        self.update_state(state="PROGRESS", meta={"progress": 100, "status": "Complete"})
+        return result
+    except Exception as exc:
+        logger.error("generate_resume_task failed: %s", str(exc))
+        raise
