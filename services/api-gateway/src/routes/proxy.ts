@@ -7,30 +7,32 @@ const logger = createLogger({ service: 'api-gateway' });
 const router = Router();
 
 function buildProxy(target: string, pathRewrite?: Record<string, string>) {
-  return createProxyMiddleware({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const options: any = {
     target,
     changeOrigin: true,
-    pathRewrite,
     on: {
-      proxyReq: (proxyReq, req) => {
+      proxyReq: (proxyReq: any, req: any) => {
         // Forward trace headers to upstream services
         const requestId = req.headers['x-request-id'];
         const traceId = req.headers['x-trace-id'];
         if (requestId) proxyReq.setHeader('X-Request-ID', requestId);
         if (traceId) proxyReq.setHeader('X-Trace-ID', traceId);
         // Forward authenticated user context
-        if ((req as { user?: { id?: string } }).user?.id) {
-          proxyReq.setHeader('X-User-ID', (req as { user?: { id?: string } }).user!.id!);
+        if (req.user?.id) {
+          proxyReq.setHeader('X-User-ID', req.user.id);
         }
       },
-      error: (err, req, res) => {
+      error: (err: any, req: any, res: any) => {
         logger.error({ err, path: req.url }, 'Proxy error');
-        (res as { status: (n: number) => { json: (b: unknown) => void } })
+        (res as unknown as { status: (n: number) => { json: (b: unknown) => void } })
           .status(502)
           .json({ error: 'Bad Gateway', message: 'Upstream service unavailable' });
       },
     },
-  });
+  };
+  if (pathRewrite) options.pathRewrite = pathRewrite;
+  return createProxyMiddleware(options);
 }
 
 // ─── Route Mappings ────────────────────────────────────────────────────────

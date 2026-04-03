@@ -408,7 +408,7 @@ function compareDescriptions(current: string, suggested: string): {
 }
   
 
-function isNewItem<T>(current: T[] | undefined, suggested: T[] | undefined, item: T): boolean {
+function isNewItem<T>(current: T[] | undefined, _suggested: T[] | undefined, item: T): boolean {
   if (!current) return true;
   return !current.includes(item);
 }

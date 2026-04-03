@@ -11,7 +11,7 @@ SERVICES_ONLY=false
 
 for arg in "$@"; do
   case $arg in
-    --infra-only)   INFRA_ONLY=true ;;
+    --infra-only)    INFRA_ONLY=true ;;
     --services-only) SERVICES_ONLY=true ;;
   esac
 done
@@ -51,14 +51,13 @@ done
 
 echo ""
 echo "📦 Installing dependencies..."
-pnpm install --frozen-lockfile
+npm install
 
 # ─── Step 4: Build shared packages first ─────────────────────────────────────
 
 echo ""
 echo "🔨 Building shared packages..."
-pnpm turbo build \
-  --filter=@resume-score/common \
+npm run build -- --filter=@resume-score/common \
   --filter=@resume-score/types \
   --filter=@resume-score/logger \
   --filter=@resume-score/kafka \
@@ -69,7 +68,7 @@ pnpm turbo build \
 
 echo ""
 echo "🗄️  Running database migrations..."
-pnpm --filter=@resume-score/database db:push || echo "⚠️  DB migration skipped (check DATABASE_URL)"
+npm run -w @resume-score/database db:push || echo "⚠️  DB migration skipped (check DATABASE_URL)"
 
 # ─── Step 6: Start all services ──────────────────────────────────────────────
 
@@ -86,4 +85,4 @@ echo "   AI svc:     http://localhost:8001/docs"
 echo "   Auth svc:   http://localhost:8002/docs"
 echo ""
 
-pnpm dev
+npm run dev

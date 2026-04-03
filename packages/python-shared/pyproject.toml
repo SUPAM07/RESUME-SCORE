@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "resume-score-shared"
+version = "0.1.0"
+description = "Shared Python utilities for Resume Score microservices"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "structlog>=25.1.0",
+    "httpx>=0.28.1",
+]
+
+[project.optional-dependencies]
+kafka = ["confluent-kafka>=2.8.0"]
+redis = ["redis>=5.2.1"]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.3",
+    "mypy>=1.14.1",
+    "ruff>=0.9.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["resume_score_shared"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

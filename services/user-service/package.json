@@ -10,11 +10,11 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@resume-score/common": "workspace:*",
-    "@resume-score/database": "workspace:*",
-    "@resume-score/kafka": "workspace:*",
-    "@resume-score/logger": "workspace:*",
-    "@resume-score/types": "workspace:*",
+    "@resume-score/common": "*",
+    "@resume-score/database": "*",
+    "@resume-score/kafka": "*",
+    "@resume-score/logger": "*",
+    "@resume-score/types": "*",
     "express": "^4.21.2",
     "express-async-errors": "^3.1.1",
     "dotenv": "^16.4.7",

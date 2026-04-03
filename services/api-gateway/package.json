@@ -12,9 +12,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@resume-score/common": "workspace:*",
-    "@resume-score/logger": "workspace:*",
-    "@resume-score/types": "workspace:*",
+    "@resume-score/common": "*",
+    "@resume-score/logger": "*",
+    "@resume-score/types": "*",
     "express": "^4.21.2",
     "express-http-proxy": "^2.1.1",
     "express-rate-limit": "^7.5.0",

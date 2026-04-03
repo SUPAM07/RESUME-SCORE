@@ -118,6 +118,7 @@ export function ResumeEditorClient({
         e.returnValue = '';
         return '';
       }
+      return undefined;
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);

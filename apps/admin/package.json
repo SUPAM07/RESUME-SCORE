@@ -11,9 +11,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@resume-score/common": "workspace:*",
-    "@resume-score/types": "workspace:*",
-    "@resume-score/logger": "workspace:*",
+    "@resume-score/common": "*",
+    "@resume-score/types": "*",
+    "@resume-score/logger": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.5",

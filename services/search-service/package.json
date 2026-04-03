@@ -10,10 +10,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@resume-score/common": "workspace:*",
-    "@resume-score/kafka": "workspace:*",
-    "@resume-score/logger": "workspace:*",
-    "@resume-score/types": "workspace:*",
+    "@resume-score/common": "*",
+    "@resume-score/kafka": "*",
+    "@resume-score/logger": "*",
+    "@resume-score/types": "*",
     "@elastic/elasticsearch": "^8.17.1",
     "express": "^4.21.2",
     "express-async-errors": "^3.1.1",

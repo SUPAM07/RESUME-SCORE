@@ -11,9 +11,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@resume-score/common": "workspace:*",
-    "@resume-score/types": "workspace:*",
-    "@resume-score/logger": "workspace:*",
+    "@resume-score/common": "*",
+    "@resume-score/types": "*",
+    "@resume-score/logger": "*",
     "@ai-sdk/anthropic": "^1.0.6",
     "@ai-sdk/deepseek": "^0.0.4",
     "@ai-sdk/google": "^1.0.12",

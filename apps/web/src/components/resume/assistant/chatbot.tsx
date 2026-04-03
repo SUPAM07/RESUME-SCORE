@@ -203,6 +203,8 @@ export default function ChatBot({ resume, onResumeChange, job }: ChatBotProps) {
         addToolResult({ toolCallId: toolCall.toolCallId, result });
         return result;
       }
+
+      return null;
     },
     onFinish() {
       setIsInitialLoading(false);

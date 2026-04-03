@@ -1,5 +1,5 @@
 import { Kafka, Producer, Consumer, KafkaConfig, ProducerConfig, ConsumerConfig, EachMessagePayload } from 'kafkajs';
-import { EventEnvelope } from './types.js';
+import { EventEnvelope } from './types';
 
 export class KafkaProducer {
   private producer: Producer;
@@ -83,14 +83,13 @@ export class KafkaConsumer {
   }
 
   async run<T>(
-    handler: (event: EventEnvelope<T>, payload: EachMessagePayload) => Promise<void>,
+    handler: (event: EventEnvelope<T>) => Promise<void>,
   ): Promise<void> {
     await this.consumer.run({
-      eachMessage: async (payload) => {
-        const { message } = payload;
+      eachMessage: async ({ message }: EachMessagePayload) => {
         if (!message.value) return;
         const event = JSON.parse(message.value.toString()) as EventEnvelope<T>;
-        await handler(event, payload);
+        await handler(event);
       },
     });
   }
@@ -113,5 +112,5 @@ export function createKafkaClient(config: KafkaConfig): Kafka {
   });
 }
 
-export { EventEnvelope } from './types.js';
-export * from './topics.js';
+export type { EventEnvelope } from './types';
+export * from './topics';

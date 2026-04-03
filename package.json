@@ -2,10 +2,20 @@
   "name": "resume-score",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "npm@10.8.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/resume-service",
+    "services/notification-service",
+    "services/api-gateway",
+    "services/user-service",
+    "services/search-service",
+    "services/shared"
+  ],
   "engines": {
     "node": ">=20.0.0",
-    "pnpm": ">=9.0.0"
+    "npm": ">=10.0.0"
   },
   "scripts": {
     "dev": "turbo dev",

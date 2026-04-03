@@ -14,7 +14,7 @@ app.get('/health', (_req, res) => {
  * GET /search/resumes?q=software+engineer&userId=xxx
  */
 app.get('/search/resumes', async (req, res) => {
-  const { q, userId, page = '1', limit = '10' } = req.query as Record<string, string>;
+  const { q, userId } = req.query as Record<string, string>;
   logger.info({ q, userId }, 'Resume search');
   // TODO: query Elasticsearch / vector DB
   res.json({ success: true, data: { items: [], total: 0, query: q } });

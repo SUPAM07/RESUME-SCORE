@@ -6,7 +6,7 @@ import { manageSubscriptionStatusChange } from '@/utils/actions/stripe/actions'
 import { createServiceClient } from '@/utils/supabase/server'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil'
+  apiVersion: '2025-08-27.basil' as any
 })
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
