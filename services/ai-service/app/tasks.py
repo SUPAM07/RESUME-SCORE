@@ -41,7 +41,7 @@ def _call_ai(prompt: str, system_prompt: str = "") -> str:
             system=json_system,
             messages=[{"role": "user", "content": prompt}],
         )
-        return message.content[0].text
+        response_text = message.content[0].text
     else:
         client = _get_openai_client()
         messages = []
@@ -58,7 +58,16 @@ def _call_ai(prompt: str, system_prompt: str = "") -> str:
             max_tokens=4096,
             response_format={"type": "json_object"},
         )
-        return response.choices[0].message.content or "{}"
+        response_text = response.choices[0].message.content or "{}"
+
+    # Validate that the response is parseable JSON before returning
+    try:
+        json.loads(response_text)
+    except json.JSONDecodeError as e:
+        logger.error("AI provider returned invalid JSON (first 200 chars): %s", response_text[:200])
+        raise ValueError(f"AI provider returned invalid JSON: {e}") from e
+
+    return response_text
 
 
 class BaseAITask(Task):

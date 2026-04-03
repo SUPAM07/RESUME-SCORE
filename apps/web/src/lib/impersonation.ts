@@ -65,7 +65,7 @@ export function createImpersonationStateCookieValue({
 export function parseImpersonationStateCookieValue(
   cookieValue?: string | null
 ): ImpersonationStatePayload | null {
-  if (!cookieValue) return null;
+  if (!cookieValue || typeof cookieValue !== 'string') return null;
 
   const [payloadBase64, signature, ...extraParts] = cookieValue.split('.');
   if (!payloadBase64 || !signature || extraParts.length > 0) return null;
@@ -77,13 +77,20 @@ export function parseImpersonationStateCookieValue(
   }
 
   try {
-    const payload = JSON.parse(Buffer.from(payloadBase64, 'base64url').toString('utf8')) as ImpersonationStatePayload;
+    const parsed = JSON.parse(Buffer.from(payloadBase64, 'base64url').toString('utf8')) as unknown;
 
-    if (!payload?.adminUserId || !payload?.impersonatedUserId) return null;
-    if (typeof payload.issuedAt !== 'number' || typeof payload.expiresAt !== 'number') return null;
-    if (payload.expiresAt <= Date.now()) return null;
+    if (typeof parsed !== 'object' || parsed === null) return null;
 
-    return payload;
+    const payload = parsed as Record<string, unknown>;
+    const { adminUserId, impersonatedUserId, issuedAt, expiresAt } = payload;
+
+    if (typeof adminUserId !== 'string' || adminUserId.length === 0) return null;
+    if (typeof impersonatedUserId !== 'string' || impersonatedUserId.length === 0) return null;
+    if (typeof issuedAt !== 'number' || issuedAt <= 0) return null;
+    if (typeof expiresAt !== 'number' || expiresAt <= 0) return null;
+    if (expiresAt <= Date.now()) return null;
+
+    return { adminUserId, impersonatedUserId, issuedAt, expiresAt };
   } catch {
     return null;
   }

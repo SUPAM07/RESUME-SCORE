@@ -24,7 +24,7 @@ export const config = {
   },
 
   redis: {
-    url: process.env['REDIS_URL'],
+    url: required('REDIS_URL'),
   },
 
   events: {
