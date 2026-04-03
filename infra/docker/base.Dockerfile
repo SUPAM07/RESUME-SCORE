@@ -10,18 +10,15 @@ WORKDIR /app
 FROM base AS deps
 
 # Copy workspace configs
-COPY package.json pnpm-workspace.yaml turbo.json ./
+COPY package.json package-lock.json turbo.json ./
 COPY packages/ ./packages/
-
-# Install pnpm
-RUN npm install -g pnpm@9.15.0
 
 # Copy service package files
 ARG SERVICE_NAME
 COPY services/${SERVICE_NAME}/package.json ./services/${SERVICE_NAME}/
 
-# Install production deps only
-RUN pnpm install --frozen-lockfile --filter ${SERVICE_NAME}
+# Install dependencies (use legacy-peer-deps for compatibility)
+RUN npm install --legacy-peer-deps
 
 # ─── Builder stage ────────────────────────────────────────────────────────────
 FROM deps AS builder
@@ -31,7 +28,7 @@ ARG SERVICE_NAME
 COPY services/${SERVICE_NAME}/ ./services/${SERVICE_NAME}/
 
 # Build the service
-RUN pnpm run --filter ${SERVICE_NAME} build
+RUN npm run build --workspace=services/${SERVICE_NAME}
 
 # ─── Production stage ─────────────────────────────────────────────────────────
 FROM base AS runner

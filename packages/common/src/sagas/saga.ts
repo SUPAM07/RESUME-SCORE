@@ -149,7 +149,7 @@ export function buildCreateAndScoreSaga(
   const steps: SagaStep[] = [
     {
       name: 'create-resume',
-      async execute(ctx) {
+      async execute(_ctx) {
         const resumeId = await input.createResume(input.resumeData, input.userId);
         return { resumeId };
       },

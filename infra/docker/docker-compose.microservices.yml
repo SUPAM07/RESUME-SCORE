@@ -2,7 +2,7 @@ services:
   # API Gateway (Nginx reverse proxy)
   api-gateway:
     build:
-      context: ../services/api-gateway
+      context: ../../services/api-gateway
       dockerfile: Dockerfile
     ports:
       - "80:80"
@@ -24,7 +24,7 @@ services:
   # Auth Service (Python FastAPI)
   auth-service:
     build:
-      context: ../services/auth-service
+      context: ../../services/auth-service
       dockerfile: Dockerfile
     ports:
       - "8001:8001"
@@ -50,7 +50,7 @@ services:
   # AI Service (Python FastAPI + Celery)
   ai-service:
     build:
-      context: ../services/ai-service
+      context: ../../services/ai-service
       dockerfile: Dockerfile
     ports:
       - "8002:8002"
@@ -82,7 +82,7 @@ services:
   # Celery Worker for AI Service
   ai-worker:
     build:
-      context: ../services/ai-service
+      context: ../../services/ai-service
       dockerfile: Dockerfile
     command: celery -A app.celery_app worker --loglevel=info -Q ai_heavy,ai_light --concurrency=2
     environment:
@@ -104,7 +104,7 @@ services:
   # Resume Service (Node.js / Express + TypeScript)
   resume-service:
     build:
-      context: ../services/resume-service
+      context: ../../services/resume-service
       dockerfile: Dockerfile
     ports:
       - "8003:8003"
@@ -132,7 +132,7 @@ services:
   # Job Service (Node.js / Express + TypeScript)
   job-service:
     build:
-      context: ../services/job-service
+      context: ../../services/job-service
       dockerfile: Dockerfile
     ports:
       - "8004:8004"
@@ -179,8 +179,8 @@ services:
   # Frontend (Next.js)
   frontend:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: ../../
+      dockerfile: infra/docker/Dockerfile
     ports:
       - "3000:3000"
     environment:

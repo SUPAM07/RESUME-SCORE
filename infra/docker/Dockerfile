@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Pin pnpm version for reproducibility
-ARG PNPM_VERSION=9.15.1
-RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+# Pin npm version for reproducibility
+ARG NPM_VERSION=10.0.0
+RUN npm install -g npm@${NPM_VERSION}
 
 # ==========================================
 # Dependencies stage
@@ -31,10 +31,10 @@ RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 FROM build-base AS deps
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json package-lock.json ./
 
 # Install all dependencies (including devDependencies for build)
-RUN pnpm install --frozen-lockfile
+RUN npm install --legacy-peer-deps
 
 # ==========================================
 # Development stage
@@ -46,8 +46,8 @@ WORKDIR /app
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy package files (needed for pnpm commands)
-COPY package.json pnpm-lock.yaml ./
+# Copy package files (needed for npm commands)
+COPY package.json package-lock.json ./
 
 # Copy config files (changes less frequently = better caching)
 COPY next.config.ts tsconfig.json tailwind.config.ts postcss.config.mjs ./
@@ -63,7 +63,7 @@ EXPOSE 3000
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 
-CMD ["pnpm", "dev"]
+CMD ["npm", "run", "dev"]
 
 # ==========================================
 # Builder stage
@@ -75,8 +75,8 @@ WORKDIR /app
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy package files (needed for pnpm build)
-COPY package.json pnpm-lock.yaml ./
+# Copy package files (needed for npm build)
+COPY package.json package-lock.json ./
 
 # Copy config files (changes less frequently = better caching)
 COPY next.config.ts tsconfig.json tailwind.config.ts postcss.config.mjs ./
@@ -102,7 +102,7 @@ ENV NEXT_PUBLIC_SUPABASE_URL="__NEXT_PUBLIC_SUPABASE_URL__" \
 ENV STRIPE_SECRET_KEY="sk_placeholder_for_build"
 
 # Build the application
-RUN pnpm build
+RUN npm run build
 
 # ==========================================
 # Production stage - minimal runtime image

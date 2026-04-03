@@ -30,7 +30,7 @@ services:
       - LOG_LEVEL=debug
     ports:
       - "3001:3001"
-    command: ["pnpm", "dev"]
+    command: ["npm", "run", "dev"]
 
   resume-service:
     build:
@@ -41,7 +41,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-    command: ["pnpm", "dev"]
+    command: ["npm", "run", "dev"]
 
   ai-service:
     volumes:
