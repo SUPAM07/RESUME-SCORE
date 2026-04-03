@@ -34,7 +34,7 @@ function extractBearerToken(req: Request): string | null {
   return token.length > 0 ? token : null;
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
   const token = extractBearerToken(req);
   if (!token) {
     next(new AuthenticationError('Missing or malformed Authorization header'));
