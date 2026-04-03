@@ -1,0 +1,162 @@
+# Docker Compose extension for event-driven microservices.
+#
+# Usage (extend the base microservices stack):
+#   docker compose \
+#     -f docker/docker-compose.microservices.yml \
+#     -f docker/docker-compose.events.yml \
+#     up -d
+#
+# This file adds:
+#   - profile-service  (port 8005)
+#   - billing-service  (port 8006)
+#   - notification-service (port 8007)
+#   - outbox-worker    (no public port — background process)
+# and enables event publishing on the existing services.
+
+services:
+  # ── Profile Service ───────────────────────────────────────────────────────
+  profile-service:
+    build:
+      context: ../services/profile-service
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - REDIS_URL=redis://redis:6379/0
+      - ENABLE_EVENTS=true
+      - PORT=8005
+      - NODE_ENV=${NODE_ENV:-development}
+      - CORS_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:80}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # ── Billing Service ───────────────────────────────────────────────────────
+  billing-service:
+    build:
+      context: ../services/billing-service
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8006"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - REDIS_URL=redis://redis:6379/0
+      - ENABLE_EVENTS=true
+      - PORT=8006
+      - NODE_ENV=${NODE_ENV:-development}
+      - CORS_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:80}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # ── Notification Service ──────────────────────────────────────────────────
+  notification-service:
+    build:
+      context: ../services/notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "8007:8007"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_STREAM_KEY=resumelm:events
+      - CONSUMER_GROUP=notification-service
+      - PORT=8007
+      - NODE_ENV=${NODE_ENV:-development}
+      - CORS_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:80}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # ── Outbox Worker ─────────────────────────────────────────────────────────
+  outbox-worker:
+    build:
+      context: ../services/outbox-worker
+      dockerfile: Dockerfile
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_STREAM_KEY=resumelm:events
+      - POLL_INTERVAL_MS=2000
+      - BATCH_SIZE=50
+      - MAX_RETRIES=5
+      - NODE_ENV=${NODE_ENV:-development}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # ── Enable events on existing services ────────────────────────────────────
+  resume-service:
+    environment:
+      - ENABLE_EVENTS=true
+      - REDIS_URL=redis://redis:6379/0
+
+  job-service:
+    environment:
+      - ENABLE_EVENTS=true
+      - REDIS_URL=redis://redis:6379/0
+
+  ai-service:
+    environment:
+      - ENABLE_EVENTS=true
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_STREAM_KEY=resumelm:events
+
+  ai-worker:
+    environment:
+      - ENABLE_EVENTS=true
+      - REDIS_URL=redis://redis:6379/0
+
+  # Update API gateway to depend on new services
+  api-gateway:
+    depends_on:
+      profile-service:
+        condition: service_healthy
+      billing-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+
+networks:
+  resumelm-network:
+    driver: bridge

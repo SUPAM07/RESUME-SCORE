@@ -7,6 +7,7 @@
 import { getSupabaseClient } from '../utils/supabase.js';
 import { DatabaseError, NotFoundError, AuthorizationError } from '../utils/errors.js';
 import { createLogger } from '../utils/logger.js';
+import { writeToOutbox } from '../utils/outbox.js';
 import type {
   Resume,
   ResumeSummary,
@@ -118,8 +119,18 @@ export async function createResume(
     throw new DatabaseError('Failed to create resume', error);
   }
 
-  logger.info('Resume created', { resumeId: (data as Resume).id, userId });
-  return data as Resume;
+  const resume = data as Resume;
+  logger.info('Resume created', { resumeId: resume.id, userId });
+
+  // Publish domain event via outbox (fire-and-forget)
+  void writeToOutbox('resume.created', {
+    resumeId: resume.id,
+    userId,
+    resumeType: resume.is_base_resume ? 'base' : 'tailored',
+    jobId: resume.job_id ?? undefined,
+  });
+
+  return resume;
 }
 
 export async function updateResume(
@@ -146,6 +157,14 @@ export async function updateResume(
   }
 
   logger.info('Resume updated', { resumeId: id, userId });
+
+  // Publish domain event via outbox (fire-and-forget)
+  void writeToOutbox('resume.updated', {
+    resumeId: id,
+    userId,
+    fields: Object.keys(body),
+  });
+
   return data as Resume;
 }
 
@@ -167,6 +186,9 @@ export async function deleteResume(id: string, userId: string): Promise<void> {
   }
 
   logger.info('Resume deleted', { resumeId: id, userId });
+
+  // Publish domain event via outbox (fire-and-forget)
+  void writeToOutbox('resume.deleted', { resumeId: id, userId });
 }
 
 export async function duplicateResume(id: string, userId: string): Promise<Resume> {

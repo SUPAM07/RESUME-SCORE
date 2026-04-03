@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../utils/supabase.js';
 import { NotFoundError, AuthorizationError } from '../utils/errors.js';
+import { writeToOutbox } from '../utils/outbox.js';
 import type { Job, CreateJobDto, UpdateJobDto, ListJobsOptions, PaginatedJobs } from '../models/job.ts';
 
 export const jobService = {
@@ -37,13 +38,23 @@ export const jobService = {
       is_active: true,
     }).select().single();
     if (error) throw new Error(error.message);
-    return data as Job;
+    const job = data as Job;
+    // Publish domain event via outbox (fire-and-forget)
+    void writeToOutbox('job.created', {
+      jobId: job.id,
+      userId,
+      company: job.company_name,
+      positionTitle: job.position_title,
+    });
+    return job;
   },
 
   async update(userId: string, id: string, dto: UpdateJobDto): Promise<Job> {
     await this.getById(userId, id); // ownership check
     const { data, error } = await supabaseAdmin.from('jobs').update(dto).eq('id', id).select().single();
     if (error) throw new Error(error.message);
+    // Publish domain event via outbox (fire-and-forget)
+    void writeToOutbox('job.updated', { jobId: id, userId, fields: Object.keys(dto) });
     return data as Job;
   },
 
@@ -51,5 +62,7 @@ export const jobService = {
     await this.getById(userId, id); // ownership check
     const { error } = await supabaseAdmin.from('jobs').delete().eq('id', id);
     if (error) throw new Error(error.message);
+    // Publish domain event via outbox (fire-and-forget)
+    void writeToOutbox('job.deleted', { jobId: id, userId });
   },
 };

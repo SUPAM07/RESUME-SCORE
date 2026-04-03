@@ -1,0 +1,30 @@
+{
+  "name": "@resume-lm/outbox-worker",
+  "version": "1.0.0",
+  "description": "Transactional Outbox polling worker for ResumeLM event-driven architecture",
+  "author": "ResumeLM",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "main": "./dist/worker.js",
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "build": "tsc --project tsconfig.json",
+    "start": "node dist/worker.js",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.0",
+    "redis": "^4.7.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
