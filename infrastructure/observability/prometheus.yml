@@ -1,0 +1,54 @@
+# Prometheus configuration for ResumeLM microservices
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: resumelm
+    env: development
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Auth Service
+  - job_name: auth-service
+    static_configs:
+      - targets: ['auth-service:8001']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # AI Service
+  - job_name: ai-service
+    static_configs:
+      - targets: ['ai-service:8002']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Resume Service
+  - job_name: resume-service
+    static_configs:
+      - targets: ['resume-service:8003']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Job Service
+  - job_name: job-service
+    static_configs:
+      - targets: ['job-service:8004']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Redis
+  - job_name: redis
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s

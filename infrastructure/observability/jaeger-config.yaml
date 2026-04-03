@@ -1,0 +1,31 @@
+# Jaeger All-in-One backend configuration
+# This file is used when deploying Jaeger with custom settings.
+# For local development, the default all-in-one image settings are sufficient.
+
+# Storage backend: memory (dev) | badger | cassandra | elasticsearch
+span-storage:
+  type: memory
+
+# Collector settings
+collector:
+  # OTLP receiver (gRPC)
+  otlp:
+    grpc:
+      host-port: 0.0.0.0:4317
+    # OTLP receiver (HTTP)
+    http:
+      host-port: 0.0.0.0:4318
+
+# Query service / UI settings
+query:
+  base-path: /
+  # HTTP port for the Jaeger UI
+  http-server:
+    host-port: 0.0.0.0:16686
+
+# Sampling configuration
+sampling:
+  # For local development use constant sampler (sample everything).
+  # Switch to probabilistic or remote in production.
+  strategies-file: ""
+  default-sampling-probability: 1.0

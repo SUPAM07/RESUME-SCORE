@@ -1,0 +1,93 @@
+{
+  "name": "@resume-lm/shared",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types, API contracts, middleware and utilities for ResumeLM microservices",
+  "author": "ResumeLM",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./contracts/api": {
+      "import": "./dist/contracts/api.js",
+      "types": "./dist/contracts/api.d.ts"
+    },
+    "./middleware/auth": {
+      "import": "./dist/middleware/auth.js",
+      "types": "./dist/middleware/auth.d.ts"
+    },
+    "./middleware/resilience": {
+      "import": "./dist/middleware/resilience.js",
+      "types": "./dist/middleware/resilience.d.ts"
+    },
+    "./observability/types": {
+      "import": "./dist/observability/types.js",
+      "types": "./dist/observability/types.d.ts"
+    },
+    "./observability/tracing": {
+      "import": "./dist/observability/tracing.js",
+      "types": "./dist/observability/tracing.d.ts"
+    },
+    "./observability/metrics": {
+      "import": "./dist/observability/metrics.js",
+      "types": "./dist/observability/metrics.d.ts"
+    },
+    "./utils/logger": {
+      "import": "./dist/utils/logger.js",
+      "types": "./dist/utils/logger.d.ts"
+    },
+    "./utils/correlation-id": {
+      "import": "./dist/utils/correlation-id.js",
+      "types": "./dist/utils/correlation-id.d.ts"
+    },
+    "./utils/errors": {
+      "import": "./dist/utils/errors.js",
+      "types": "./dist/utils/errors.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "build:watch": "tsc --project tsconfig.json --watch",
+    "lint": "eslint '{types,contracts,middleware,utils,observability}/**/*.ts' --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@opentelemetry/exporter-trace-otlp-http": "^0.55.0",
+    "@opentelemetry/instrumentation-express": "^0.46.0",
+    "@opentelemetry/instrumentation-http": "^0.55.0",
+    "@opentelemetry/resources": "^1.28.0",
+    "@opentelemetry/sdk-node": "^0.55.0",
+    "@opentelemetry/sdk-trace-node": "^1.28.0",
+    "@opentelemetry/semantic-conventions": "^1.28.0",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.0.0",
+    "@types/winston": "^2.4.4",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.9"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

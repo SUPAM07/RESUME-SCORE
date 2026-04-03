@@ -1,0 +1,157 @@
+# ============================================================
+# ResumeLM High-Availability Stack
+# Redis Sentinel (3-node) for HA message broker / cache,
+# plus additional service replicas and health monitoring.
+#
+# Usage:
+#   docker compose \
+#     -f docker/docker-compose.microservices.yml \
+#     -f docker/docker-compose.ha.yml \
+#     up -d
+#
+# Redis Sentinel endpoints (for services):
+#   sentinel1:26379, sentinel2:26379, sentinel3:26379
+# Master name: resumelm-master
+# ============================================================
+
+services:
+  # ── Redis primary ─────────────────────────────────────────────────────────
+  redis-primary:
+    image: redis:7-alpine
+    container_name: resumelm-redis-primary
+    command: >
+      redis-server
+      --appendonly yes
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis-primary-data:/data
+    networks:
+      - resumelm-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── Redis replica ─────────────────────────────────────────────────────────
+  redis-replica:
+    image: redis:7-alpine
+    container_name: resumelm-redis-replica
+    command: >
+      redis-server
+      --appendonly yes
+      --replicaof redis-primary 6379
+      --masterauth ${REDIS_PASSWORD:-changeme}
+      --requirepass ${REDIS_PASSWORD:-changeme}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-replica-data:/data
+    networks:
+      - resumelm-network
+    restart: always
+    depends_on:
+      redis-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis Sentinel 1 ──────────────────────────────────────────────────────
+  sentinel1:
+    image: redis:7-alpine
+    container_name: resumelm-sentinel1
+    command: >
+      redis-sentinel /etc/redis/sentinel.conf
+      --sentinel announce-ip sentinel1
+      --sentinel announce-port 26379
+    volumes:
+      - ../infrastructure/ha/sentinel.conf:/etc/redis/sentinel.conf:ro
+    ports:
+      - "26379:26379"
+    networks:
+      - resumelm-network
+    restart: always
+    depends_on:
+      redis-primary:
+        condition: service_healthy
+
+  # ── Redis Sentinel 2 ──────────────────────────────────────────────────────
+  sentinel2:
+    image: redis:7-alpine
+    container_name: resumelm-sentinel2
+    command: >
+      redis-sentinel /etc/redis/sentinel.conf
+      --sentinel announce-ip sentinel2
+      --sentinel announce-port 26379
+    volumes:
+      - ../infrastructure/ha/sentinel.conf:/etc/redis/sentinel.conf:ro
+    ports:
+      - "26380:26379"
+    networks:
+      - resumelm-network
+    restart: always
+    depends_on:
+      redis-primary:
+        condition: service_healthy
+
+  # ── Redis Sentinel 3 ──────────────────────────────────────────────────────
+  sentinel3:
+    image: redis:7-alpine
+    container_name: resumelm-sentinel3
+    command: >
+      redis-sentinel /etc/redis/sentinel.conf
+      --sentinel announce-ip sentinel3
+      --sentinel announce-port 26379
+    volumes:
+      - ../infrastructure/ha/sentinel.conf:/etc/redis/sentinel.conf:ro
+    ports:
+      - "26381:26379"
+    networks:
+      - resumelm-network
+    restart: always
+    depends_on:
+      redis-primary:
+        condition: service_healthy
+
+  # ── RabbitMQ message broker ───────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: resumelm-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-resumelm}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-changeme}
+      - RABBITMQ_DEFAULT_VHOST=resumelm
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - resumelm-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  redis-primary-data:
+  redis-replica-data:
+  rabbitmq-data:
+
+networks:
+  resumelm-network:
+    external: true

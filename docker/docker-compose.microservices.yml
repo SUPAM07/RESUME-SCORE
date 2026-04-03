@@ -1,0 +1,204 @@
+services:
+  # API Gateway (Nginx reverse proxy)
+  api-gateway:
+    build:
+      context: ../services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      resume-service:
+        condition: service_healthy
+      job-service:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # Auth Service (Python FastAPI)
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:80}
+      - ENABLE_TRACING=${ENABLE_TRACING:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4318}
+      - SERVICE_AUTH_ENABLED=${SERVICE_AUTH_ENABLED:-false}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # AI Service (Python FastAPI + Celery)
+  ai-service:
+    build:
+      context: ../services/ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:80}
+      - ENABLE_TRACING=${ENABLE_TRACING:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4318}
+      - SERVICE_AUTH_ENABLED=${SERVICE_AUTH_ENABLED:-false}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # Celery Worker for AI Service
+  ai-worker:
+    build:
+      context: ../services/ai-service
+      dockerfile: Dockerfile
+    command: celery -A app.celery_app worker --loglevel=info -Q ai_heavy,ai_light --concurrency=2
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - ENABLE_TRACING=${ENABLE_TRACING:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4318}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # Resume Service (Node.js / Express + TypeScript)
+  resume-service:
+    build:
+      context: ../services/resume-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:80}
+      - PORT=8003
+      - ENABLE_TRACING=${ENABLE_TRACING:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4318}
+      - ENABLE_CIRCUIT_BREAKER=${ENABLE_CIRCUIT_BREAKER:-false}
+      - SERVICE_AUTH_ENABLED=${SERVICE_AUTH_ENABLED:-false}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # Job Service (Node.js / Express + TypeScript)
+  job-service:
+    build:
+      context: ../services/job-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:80}
+      - PORT=8004
+      - ENABLE_TRACING=${ENABLE_TRACING:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4318}
+      - ENABLE_CIRCUIT_BREAKER=${ENABLE_CIRCUIT_BREAKER:-false}
+      - SERVICE_AUTH_ENABLED=${SERVICE_AUTH_ENABLED:-false}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # Redis (Celery broker + result backend)
+  # NOTE: No password required in dev. Production compose (docker-compose.prod.yml) uses REDIS_PASSWORD.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+    networks:
+      - resumelm-network
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+
+networks:
+  resumelm-network:
+    driver: bridge
