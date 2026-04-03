@@ -3,7 +3,8 @@ import redis from '@/lib/redis';
 
 /**
  * Checks and updates the leaky bucket for a given user.
- * 
+ * Uses an atomic Lua script to prevent race conditions with concurrent requests.
+ *
  * @param userId - The unique identifier for the Pro user.
  * @param capacity - Maximum number of allowed messages (default: 80).
  * @param duration - The duration (in seconds) over which the capacity is allowed (default: 5 hours).
@@ -23,36 +24,39 @@ export async function checkRateLimit(
   const redisKey = `rate-limit:pro:${userId}`;
   const now = Date.now() / 1000; // current time in seconds
 
-  // Get existing bucket data from Redis.
-  const bucket = await redis.hgetall(redisKey);
-  let tokens: number;
-  let last: number;
+  // Atomic Lua script: read, compute, and write in a single Redis transaction
+  // to prevent race conditions when multiple requests arrive concurrently.
+  const script = `
+    local key = KEYS[1]
+    local leak_rate = tonumber(ARGV[1])
+    local now = tonumber(ARGV[2])
+    local capacity = tonumber(ARGV[3])
+    local duration = tonumber(ARGV[4])
 
-  if (!bucket || !bucket.tokens || !bucket.last) {
-    // No bucket exists yet—initialize it.
-    tokens = 0;
-    last = now;
-    // Set an expiration a bit longer than the duration so that stale data is removed.
-    await redis.expire(redisKey, duration + 3600);
-  } else {
-    tokens = parseFloat(bucket.tokens as string);
-    last = parseFloat(bucket.last as string);
+    local bucket = redis.call('hgetall', key)
+    local tokens, last = 0, now
+
+    if #bucket > 0 then
+      tokens = tonumber(bucket[2])
+      last = tonumber(bucket[4])
+    end
+
+    local delta = now - last
+    tokens = math.max(0, tokens - delta * leak_rate)
+    local new_tokens = tokens + 1
+
+    if new_tokens > capacity then
+      return {-1, math.ceil(((new_tokens - capacity) * duration) / capacity)}
+    end
+
+    redis.call('hset', key, 'tokens', tostring(new_tokens), 'last', tostring(now))
+    redis.call('expire', key, duration + 3600)
+    return {0, 0}
+  `;
+
+  const result = await redis.eval(script, 1, redisKey, LEAK_RATE, now, capacity, duration) as number[];
+
+  if (result[0] === -1) {
+    throw new Error(`Rate limit exceeded. Try again in ${result[1]} seconds.`);
   }
-
-  // Compute the time elapsed since the last update and "leak" tokens.
-  const delta = now - last;
-  tokens = Math.max(0, tokens - delta * LEAK_RATE);
-
-  // Add one token for the current request.
-  const newTokens = tokens + 1;
-
-  if (newTokens > capacity) {
-    // Calculate how many seconds remain until the bucket drains enough.
-    const timeLeft = Math.ceil(((newTokens - capacity) * duration) / capacity);
-    throw new Error(`Rate limit exceeded. Try again in ${timeLeft} seconds.`);
-  }
-
-  // Update the bucket in Redis with the new token count and current timestamp.
-  await redis.hset(redisKey, { tokens: newTokens.toString(), last: now.toString() });
-  await redis.expire(redisKey, duration + 3600);
 }
