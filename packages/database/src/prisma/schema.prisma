@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  FREE
+  PRO
+  ENTERPRISE
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum ResumeStatus {
+  DRAFT
+  PROCESSING
+  ANALYZED
+  ERROR
+  ARCHIVED
+}
+
+enum JobExperienceLevel {
+  ENTRY
+  MID
+  SENIOR
+  LEAD
+  EXECUTIVE
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+  WEBSOCKET
+  SMS
+}
+
+enum NotificationType {
+  RESUME_ANALYSIS_COMPLETE
+  RESUME_SCORING_COMPLETE
+  JOB_MATCH_FOUND
+  ACCOUNT_ACTIVITY
+  SYSTEM_ALERT
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id          String     @id @default(cuid())
+  email       String     @unique
+  name        String
+  role        UserRole   @default(FREE)
+  status      UserStatus @default(PENDING_VERIFICATION)
+  avatarUrl   String?
+  supabaseId  String?    @unique
+  stripeId    String?    @unique
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  resumes       Resume[]
+  jobs          Job[]
+  notifications Notification[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Resume {
+  id               String       @id @default(cuid())
+  userId           String
+  title            String
+  originalFileName String?
+  fileUrl          String?
+  rawText          String?
+  status           ResumeStatus @default(DRAFT)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections ResumeSection[]
+  analyses AIAnalysis[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("resumes")
+}
+
+model ResumeSection {
+  id        String   @id @default(cuid())
+  resumeId  String
+  type      String
+  title     String?
+  content   String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@map("resume_sections")
+}
+
+model Job {
+  id              String             @id @default(cuid())
+  userId          String
+  title           String
+  company         String
+  description     String
+  requirements    String[]
+  skills          String[]
+  experienceLevel JobExperienceLevel @default(MID)
+  location        String?
+  remote          Boolean            @default(false)
+  salaryMin       Int?
+  salaryMax       Int?
+  salaryCurrency  String?            @default("USD")
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses AIAnalysis[]
+
+  @@index([userId])
+  @@map("jobs")
+}
+
+model AIAnalysis {
+  id               String   @id @default(cuid())
+  resumeId         String
+  jobId            String?
+  overallScore     Float
+  keywordMatch     Float
+  experienceMatch  Float
+  skillsMatch      Float
+  formattingScore  Float
+  readabilityScore Float
+  atsFriendliness  Float
+  strengths        String[]
+  weaknesses       String[]
+  suggestions      String[]
+  keywordsFound    String[]
+  keywordsMissing  String[]
+  summary          String
+  modelUsed        String
+  createdAt        DateTime @default(now())
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  job    Job?   @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([resumeId])
+  @@index([jobId])
+  @@map("ai_analyses")
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  channel   NotificationChannel
+  type      NotificationType
+  title     String
+  body      String
+  metadata  Json?
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@map("notifications")
+}
+
+model OutboxEvent {
+  id          String    @id @default(cuid())
+  aggregateId String
+  eventType   String
+  payload     Json
+  topic       String
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  retryCount  Int       @default(0)
+  error       String?
+
+  @@index([processed])
+  @@index([aggregateId])
+  @@map("outbox_events")
+}

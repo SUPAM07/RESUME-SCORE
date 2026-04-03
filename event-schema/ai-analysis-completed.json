@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://resume-score.io/events/ai-analysis-completed.json",
+  "title": "AIAnalysisCompleted",
+  "description": "Emitted by ai-service when analysis pipeline finishes. Consumed by resume-service and notification-service.",
+  "type": "object",
+  "required": ["eventId", "eventType", "aggregateId", "aggregateType", "occurredAt", "version", "data", "producerService"],
+  "properties": {
+    "eventId":         { "type": "string", "format": "uuid" },
+    "eventType":       { "type": "string", "const": "ai.analysis.completed" },
+    "aggregateId":     { "type": "string", "description": "resumeId" },
+    "aggregateType":   { "type": "string", "const": "Resume" },
+    "occurredAt":      { "type": "string", "format": "date-time" },
+    "version":         { "type": "integer", "const": 1 },
+    "producerService": { "type": "string", "const": "ai-service" },
+    "traceId":         { "type": "string" },
+    "correlationId":   { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["resumeId", "userId", "scores", "summary", "modelUsed"],
+      "properties": {
+        "resumeId":  { "type": "string" },
+        "userId":    { "type": "string" },
+        "jobId":     { "type": "string" },
+        "scores": {
+          "type": "object",
+          "required": ["overall", "keywordMatch", "experienceMatch", "skillsMatch", "formattingScore", "readabilityScore", "atsFriendliness"],
+          "properties": {
+            "overall":          { "type": "number", "minimum": 0, "maximum": 100 },
+            "keywordMatch":     { "type": "number", "minimum": 0, "maximum": 100 },
+            "experienceMatch":  { "type": "number", "minimum": 0, "maximum": 100 },
+            "skillsMatch":      { "type": "number", "minimum": 0, "maximum": 100 },
+            "formattingScore":  { "type": "number", "minimum": 0, "maximum": 100 },
+            "readabilityScore": { "type": "number", "minimum": 0, "maximum": 100 },
+            "atsFriendliness":  { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "strengths":       { "type": "array", "items": { "type": "string" } },
+        "weaknesses":      { "type": "array", "items": { "type": "string" } },
+        "suggestions":     { "type": "array", "items": { "type": "string" } },
+        "keywordsFound":   { "type": "array", "items": { "type": "string" } },
+        "keywordsMissing": { "type": "array", "items": { "type": "string" } },
+        "summary":         { "type": "string" },
+        "modelUsed":       { "type": "string" }
+      }
+    }
+  }
+}

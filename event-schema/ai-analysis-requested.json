@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://resume-score.io/events/ai-analysis-requested.json",
+  "title": "AIAnalysisRequested",
+  "description": "Emitted when a full AI analysis is requested for a resume (optionally against a job description).",
+  "type": "object",
+  "required": ["eventId", "eventType", "aggregateId", "aggregateType", "occurredAt", "version", "data", "producerService"],
+  "properties": {
+    "eventId":         { "type": "string", "format": "uuid" },
+    "eventType":       { "type": "string", "const": "ai.analysis.requested" },
+    "aggregateId":     { "type": "string", "description": "resumeId" },
+    "aggregateType":   { "type": "string", "const": "Resume" },
+    "occurredAt":      { "type": "string", "format": "date-time" },
+    "version":         { "type": "integer", "const": 1 },
+    "producerService": { "type": "string" },
+    "traceId":         { "type": "string" },
+    "correlationId":   { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["resumeId", "userId", "resumeText"],
+      "properties": {
+        "resumeId":       { "type": "string" },
+        "userId":         { "type": "string" },
+        "resumeText":     { "type": "string", "description": "Extracted plain text of the resume" },
+        "jobId":          { "type": "string" },
+        "jobDescription": { "type": "string" },
+        "targetRole":     { "type": "string" },
+        "priority":       { "type": "string", "enum": ["LOW", "NORMAL", "HIGH"], "default": "NORMAL" },
+        "modelPreference":{ "type": "string", "description": "Optional preferred LLM model" }
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://resume-score.io/events/resume-uploaded.json",
+  "title": "ResumeUploaded",
+  "description": "Emitted when a user uploads a resume file. Triggers AI parsing pipeline.",
+  "type": "object",
+  "required": ["eventId", "eventType", "aggregateId", "aggregateType", "occurredAt", "version", "data", "producerService"],
+  "properties": {
+    "eventId":         { "type": "string", "format": "uuid" },
+    "eventType":       { "type": "string", "const": "resume.uploaded" },
+    "aggregateId":     { "type": "string", "description": "resumeId" },
+    "aggregateType":   { "type": "string", "const": "Resume" },
+    "occurredAt":      { "type": "string", "format": "date-time" },
+    "version":         { "type": "integer", "const": 1 },
+    "producerService": { "type": "string", "const": "resume-service" },
+    "traceId":         { "type": "string" },
+    "correlationId":   { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["resumeId", "userId", "fileUrl", "mimeType", "fileSizeBytes"],
+      "properties": {
+        "resumeId":      { "type": "string" },
+        "userId":        { "type": "string" },
+        "fileUrl":       { "type": "string", "format": "uri" },
+        "mimeType":      { "type": "string" },
+        "fileSizeBytes": { "type": "integer" },
+        "originalName":  { "type": "string" },
+        "jobId":         { "type": "string", "description": "Optional: associated job for targeted analysis" }
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://resume-score.io/events/notification-requested.json",
+  "title": "NotificationRequested",
+  "description": "Emitted by any service to request that notification-service send a notification to a user",
+  "type": "object",
+  "properties": {
+    "eventId":         { "type": "string", "format": "uuid" },
+    "eventType":       { "type": "string", "const": "notification.requested" },
+    "aggregateId":     { "type": "string" },
+    "aggregateType":   { "type": "string", "const": "Notification" },
+    "occurredAt":      { "type": "string", "format": "date-time" },
+    "version":         { "type": "integer", "const": 1 },
+    "producerService": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["userId", "channels", "type", "title", "body"],
+      "properties": {
+        "userId":   { "type": "string" },
+        "channels": { "type": "array", "items": { "type": "string", "enum": ["EMAIL", "PUSH", "WEBSOCKET", "SMS"] } },
+        "type":     { "type": "string", "enum": ["RESUME_ANALYSIS_COMPLETE", "RESUME_SCORING_COMPLETE", "JOB_MATCH_FOUND", "ACCOUNT_ACTIVITY", "SYSTEM_ALERT"] },
+        "title":    { "type": "string" },
+        "body":     { "type": "string" },
+        "metadata": { "type": "object" }
+      }
+    }
+  }
+}

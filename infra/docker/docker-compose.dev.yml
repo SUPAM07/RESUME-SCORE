@@ -1,0 +1,59 @@
+version: "3.9"
+
+# ─── Development Override ─────────────────────────────────────────────────────
+# Use: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Mounts source code for hot-reloading
+
+services:
+  web:
+    build:
+      context: ../../
+      dockerfile: apps/web/Dockerfile.dev
+    volumes:
+      - ../../apps/web:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    ports:
+      - "3000:3000"
+
+  api-gateway:
+    build:
+      context: ../../
+      dockerfile: services/api-gateway/Dockerfile.dev
+    volumes:
+      - ../../services/api-gateway:/app/services/api-gateway
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+    ports:
+      - "3001:3001"
+    command: ["pnpm", "dev"]
+
+  resume-service:
+    build:
+      context: ../../
+      dockerfile: services/resume-service/Dockerfile.dev
+    volumes:
+      - ../../services/resume-service:/app/services/resume-service
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: ["pnpm", "dev"]
+
+  ai-service:
+    volumes:
+      - ../../services/ai-service:/app
+    environment:
+      - LOG_LEVEL=debug
+      - RELOAD=true
+    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8001"]
+
+  auth-service:
+    volumes:
+      - ../../services/auth-service:/app
+    environment:
+      - LOG_LEVEL=debug
+    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8002"]

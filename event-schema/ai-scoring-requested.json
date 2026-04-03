@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://resume-score.io/events/ai-scoring-requested.json",
+  "title": "AIScoringRequested",
+  "description": "Emitted when a quick score is requested for a resume against a specific job",
+  "type": "object",
+  "required": ["eventId", "eventType", "aggregateId", "aggregateType", "occurredAt", "version", "data", "producerService"],
+  "properties": {
+    "eventId":         { "type": "string", "format": "uuid" },
+    "eventType":       { "type": "string", "const": "ai.scoring.requested" },
+    "aggregateId":     { "type": "string" },
+    "aggregateType":   { "type": "string", "const": "Resume" },
+    "occurredAt":      { "type": "string", "format": "date-time" },
+    "version":         { "type": "integer", "const": 1 },
+    "producerService": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["resumeId", "userId", "jobId", "resumeText", "jobDescription"],
+      "properties": {
+        "resumeId":       { "type": "string" },
+        "userId":         { "type": "string" },
+        "jobId":          { "type": "string" },
+        "resumeText":     { "type": "string" },
+        "jobDescription": { "type": "string" },
+        "jobTitle":       { "type": "string" },
+        "requiredSkills": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://resume-score.io/events/user-updated.json",
+  "title": "UserUpdated",
+  "description": "Emitted when a user profile is updated",
+  "type": "object",
+  "properties": {
+    "eventId":         { "type": "string", "format": "uuid" },
+    "eventType":       { "type": "string", "const": "user.updated" },
+    "aggregateId":     { "type": "string" },
+    "aggregateType":   { "type": "string", "const": "User" },
+    "occurredAt":      { "type": "string", "format": "date-time" },
+    "version":         { "type": "integer", "const": 1 },
+    "producerService": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["userId", "changes"],
+      "properties": {
+        "userId":  { "type": "string" },
+        "changes": { "type": "object", "description": "Partial user fields that changed" }
+      }
+    }
+  }
+}

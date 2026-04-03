@@ -1,65 +1,89 @@
 #!/usr/bin/env bash
-# Start all ResumeLM microservices for development
+# ─────────────────────────────────────────────────────────────────────────────
+# start-dev.sh — Full development environment startup
+# Usage: ./scripts/start-dev.sh [--infra-only] [--services-only]
+# ─────────────────────────────────────────────────────────────────────────────
+
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-COMPOSE_FILE="${REPO_ROOT}/docker/docker-compose.microservices.yml"
-ENV_FILE="${REPO_ROOT}/.env.microservices"
+INFRA_ONLY=false
+SERVICES_ONLY=false
 
-# ---- Preflight checks ----
-if ! command -v docker &>/dev/null; then
-  echo "❌ Docker is not installed. Please install Docker first."
-  exit 1
+for arg in "$@"; do
+  case $arg in
+    --infra-only)   INFRA_ONLY=true ;;
+    --services-only) SERVICES_ONLY=true ;;
+  esac
+done
+
+echo ""
+echo "╔════════════════════════════════════════╗"
+echo "║   Resume Score — Dev Environment       ║"
+echo "╚════════════════════════════════════════╝"
+echo ""
+
+# ─── Step 1: Infrastructure ───────────────────────────────────────────────────
+
+if [ "$SERVICES_ONLY" = false ]; then
+  echo "📦 Starting infrastructure..."
+  ./scripts/start-infra.sh
+  echo ""
+  echo "⏳ Waiting 10s for infrastructure to be ready..."
+  sleep 10
 fi
 
-if ! docker compose version &>/dev/null 2>&1; then
-  echo "❌ Docker Compose v2 is not available. Please upgrade Docker."
-  exit 1
+if [ "$INFRA_ONLY" = true ]; then
+  echo "✅ Infrastructure started. Exiting (--infra-only mode)."
+  exit 0
 fi
 
-if [[ ! -f "${ENV_FILE}" ]]; then
-  echo "⚠️  No .env.microservices file found."
-  echo "   Copying from .env.microservices.example ..."
-  cp "${REPO_ROOT}/.env.microservices.example" "${ENV_FILE}"
-  echo "   ✅ Created ${ENV_FILE}"
-  echo "   ⚠️  Please fill in the required values before continuing."
-  exit 1
-fi
+# ─── Step 2: Copy env files if not present ────────────────────────────────────
 
-echo "================================================"
-echo "  Starting ResumeLM Microservices (dev)"
-echo "================================================"
-echo ""
+for service_env in services/*/.env.example; do
+  service_dir=$(dirname "$service_env")
+  if [ ! -f "$service_dir/.env" ]; then
+    cp "$service_env" "$service_dir/.env"
+    echo "📝 Created $service_dir/.env from example"
+  fi
+done
 
-cd "${REPO_ROOT}"
-
-echo "📦 Building service images..."
-docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build --parallel
+# ─── Step 3: Install dependencies ────────────────────────────────────────────
 
 echo ""
-echo "🚀 Starting all services..."
-docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d
+echo "📦 Installing dependencies..."
+pnpm install --frozen-lockfile
+
+# ─── Step 4: Build shared packages first ─────────────────────────────────────
 
 echo ""
-echo "⏳ Waiting for services to become healthy..."
-sleep 10
+echo "🔨 Building shared packages..."
+pnpm turbo build \
+  --filter=@resume-score/common \
+  --filter=@resume-score/types \
+  --filter=@resume-score/logger \
+  --filter=@resume-score/kafka \
+  --filter=@resume-score/ai-prompts \
+  --filter=@resume-score/database
+
+# ─── Step 5: Run DB migrations ───────────────────────────────────────────────
 
 echo ""
-echo "🏥 Running health checks..."
-"${SCRIPT_DIR}/health-check.sh" || true
+echo "🗄️  Running database migrations..."
+pnpm --filter=@resume-score/database db:push || echo "⚠️  DB migration skipped (check DATABASE_URL)"
+
+# ─── Step 6: Start all services ──────────────────────────────────────────────
 
 echo ""
-echo "================================================"
-echo "  Services are running!"
+echo "🚀 Starting all services with Turborepo..."
 echo ""
-echo "  API Gateway:     http://localhost:80"
-echo "  Auth Service:    http://localhost:8001"
-echo "  AI Service:      http://localhost:8002"
-echo "  Resume Service:  http://localhost:8003"
-echo "  Job Service:     http://localhost:8004"
-echo "  Frontend:        http://localhost:3000"
+echo "   Web app:    http://localhost:3000"
+echo "   Gateway:    http://localhost:3001"
+echo "   Resume svc: http://localhost:3002"
+echo "   User svc:   http://localhost:3003"
+echo "   Notify svc: http://localhost:3004"
+echo "   Search svc: http://localhost:3005"
+echo "   AI svc:     http://localhost:8001/docs"
+echo "   Auth svc:   http://localhost:8002/docs"
 echo ""
-echo "  View logs:  docker compose -f docker/docker-compose.microservices.yml logs -f"
-echo "  Stop:       docker compose -f docker/docker-compose.microservices.yml down"
-echo "================================================"
+
+pnpm dev

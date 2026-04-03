@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "services/resume-service"
+  - "services/notification-service"
+  - "services/api-gateway"
+  - "services/user-service"
+  - "services/search-service"
+  - "services/shared"

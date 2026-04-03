@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://resume-score.io/events/user-created.json",
+  "title": "UserCreated",
+  "description": "Emitted when a new user account is successfully registered",
+  "type": "object",
+  "required": ["eventId", "eventType", "aggregateId", "aggregateType", "occurredAt", "version", "data", "producerService"],
+  "properties": {
+    "eventId":         { "type": "string", "format": "uuid" },
+    "eventType":       { "type": "string", "const": "user.created" },
+    "aggregateId":     { "type": "string", "description": "userId" },
+    "aggregateType":   { "type": "string", "const": "User" },
+    "occurredAt":      { "type": "string", "format": "date-time" },
+    "version":         { "type": "integer", "const": 1 },
+    "producerService": { "type": "string", "const": "auth-service" },
+    "traceId":         { "type": "string" },
+    "correlationId":   { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["userId", "email", "name", "role"],
+      "properties": {
+        "userId":    { "type": "string" },
+        "email":     { "type": "string", "format": "email" },
+        "name":      { "type": "string" },
+        "role":      { "type": "string", "enum": ["FREE", "PRO", "ENTERPRISE", "ADMIN"] },
+        "provider":  { "type": "string", "enum": ["email", "google", "github"] },
+        "avatarUrl": { "type": "string", "format": "uri" }
+      }
+    }
+  }
+}

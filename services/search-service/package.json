@@ -1,0 +1,28 @@
+{
+  "name": "@resume-score/search-service",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@resume-score/common": "workspace:*",
+    "@resume-score/kafka": "workspace:*",
+    "@resume-score/logger": "workspace:*",
+    "@resume-score/types": "workspace:*",
+    "@elastic/elasticsearch": "^8.17.1",
+    "express": "^4.21.2",
+    "express-async-errors": "^3.1.1",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^20.17.11",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

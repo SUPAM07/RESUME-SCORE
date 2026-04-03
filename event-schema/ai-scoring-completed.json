@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://resume-score.io/events/ai-scoring-completed.json",
+  "title": "AIScoringCompleted",
+  "description": "Emitted by ai-service after a quick job-match score is calculated",
+  "type": "object",
+  "properties": {
+    "eventId":         { "type": "string", "format": "uuid" },
+    "eventType":       { "type": "string", "const": "ai.scoring.completed" },
+    "aggregateId":     { "type": "string" },
+    "aggregateType":   { "type": "string", "const": "Resume" },
+    "occurredAt":      { "type": "string", "format": "date-time" },
+    "version":         { "type": "integer", "const": 1 },
+    "producerService": { "type": "string", "const": "ai-service" },
+    "data": {
+      "type": "object",
+      "required": ["resumeId", "userId", "jobId", "score", "qualified", "recommendation"],
+      "properties": {
+        "resumeId":             { "type": "string" },
+        "userId":               { "type": "string" },
+        "jobId":                { "type": "string" },
+        "score":                { "type": "number", "minimum": 0, "maximum": 100 },
+        "matchPercentage":      { "type": "number" },
+        "qualified":            { "type": "boolean" },
+        "recommendation":       { "type": "string", "enum": ["STRONG_YES", "YES", "MAYBE", "NO"] },
+        "matchedRequirements":  { "type": "array", "items": { "type": "string" } },
+        "missingRequirements":  { "type": "array", "items": { "type": "string" } },
+        "feedback":             { "type": "string" }
+      }
+    }
+  }
+}

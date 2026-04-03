@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://resume-score.io/events/resume-analyzed.json",
+  "title": "ResumeAnalyzed",
+  "description": "Emitted by resume-service after storing AI analysis results — signals analysis is persisted and ready for client",
+  "type": "object",
+  "properties": {
+    "eventId":         { "type": "string", "format": "uuid" },
+    "eventType":       { "type": "string", "const": "resume.analyzed" },
+    "aggregateId":     { "type": "string" },
+    "aggregateType":   { "type": "string", "const": "Resume" },
+    "occurredAt":      { "type": "string", "format": "date-time" },
+    "version":         { "type": "integer", "const": 1 },
+    "producerService": { "type": "string", "const": "resume-service" },
+    "data": {
+      "type": "object",
+      "required": ["resumeId", "userId", "analysisId", "overallScore"],
+      "properties": {
+        "resumeId":    { "type": "string" },
+        "userId":      { "type": "string" },
+        "analysisId":  { "type": "string" },
+        "overallScore":{ "type": "number" },
+        "jobId":       { "type": "string" }
+      }
+    }
+  }
+}
